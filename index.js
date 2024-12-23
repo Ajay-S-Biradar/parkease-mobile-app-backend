@@ -8,7 +8,7 @@ dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
-const port = 3000;
+const port = 4000;
 
 app.use(cors({
     origin: '*',
