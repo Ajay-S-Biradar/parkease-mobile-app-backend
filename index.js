@@ -15,6 +15,10 @@ app.use(cors({
 }));
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.send('Server is running successfully on Render!');
+});
+
 app.get('/api/parking-lots', async (req, res) => {
     try {
         const parkingLots = await prisma.parkingLot.findMany({
