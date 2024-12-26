@@ -60,53 +60,54 @@ app.post('/api/nearby-parking-lots', async (req, res) => {
 });
 
 app.post('/api/lot-details', async (req, res) => {
-    const { parkingLotName, userLat, userLon } = req.body;
-  
-    try {
-      // Query the ParkingLot by name
-      const parkingLot = await prisma.parkingLot.findUnique({
-        where: {
-          name: parkingLotName,
-        },
-        include: {
-          slots: true,
-        },
-      });
-  
-      if (!parkingLot) {
-        return res.status(404).json({ message: 'Parking lot not found' });
-      }
-  
-      const distance = calculateDistanceInKM(
-        userLat,
-        userLon,
-        parkingLot.latitude,
-        parkingLot.longitude
-      );
-  
-      // Count total slots and filled/available slots
-      const totalSlots = parkingLot.totalSlots;
-      const filledSlots = parkingLot.slots.filter(slot => !slot.status).length;
-      const availableSlots = totalSlots - filledSlots;
-  
-      // Prepare response data
-      const responseData = {
-        parkingLotName: parkingLot.name,
-        latitude: parkingLot.latitude,
-        longitude: parkingLot.longitude,
-        distance: distance.toFixed(2),
-        totalSlots,
-        availableSlots,
-        filledSlots,
-      };
-  
-      // Send the response
-      res.status(200).json(responseData);
-    } catch (error) {
-      console.error('Error fetching lot details:', error);
-      res.status(500).json({ message: 'Internal server error' });
+  const { parkingLotName, userLat, userLon } = req.body;
+
+  try {
+    // Query the ParkingLot by name (using findFirst)
+    const parkingLot = await prisma.parkingLot.findFirst({
+      where: {
+        name: parkingLotName,
+      },
+      include: {
+        slots: true,
+      },
+    });
+
+    if (!parkingLot) {
+      return res.status(404).json({ message: 'Parking lot not found' });
     }
-  });
+
+    const distance = calculateDistanceInKM(
+      userLat,
+      userLon,
+      parkingLot.latitude,
+      parkingLot.longitude
+    );
+
+    // Count total slots and filled/available slots
+    const totalSlots = parkingLot.totalSlots;
+    const filledSlots = parkingLot.slots.filter(slot => !slot.status).length;
+    const availableSlots = totalSlots - filledSlots;
+
+    // Prepare response data
+    const responseData = {
+      parkingLotName: parkingLot.name,
+      latitude: parkingLot.latitude,
+      longitude: parkingLot.longitude,
+      distance: distance.toFixed(2),
+      totalSlots,
+      availableSlots,
+      filledSlots,
+    };
+
+    // Send the response
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error('Error fetching lot details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 
 // Start the Express server
