@@ -48,7 +48,7 @@ model ParkingLot {
 model ParkingSlot {
   id         String     @id @default(auto()) @map("_id") @db.ObjectId
   lotId      String     @db.ObjectId
-  lot        ParkingLot @relation(fields: [lotId], references: [id])
+  lot        ParkingLot @relation(fields: [lotId], references: [id], onDelete: Cascade)
   slotNumber Int        
   status     Boolean    @default(true) 
   locationX  Float?     @default(0.0)

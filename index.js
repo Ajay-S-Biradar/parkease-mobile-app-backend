@@ -185,6 +185,34 @@ app.put('/api/update-parking-lot', async (req, res) => {
     }
 });
 
+app.delete('/api/parking-lots/:name', async (req, res) => {
+    const { name } = req.params;
+
+    try {
+        // Fetch the parking lot by name
+        const parkingLot = await prisma.parkingLot.findFirst({
+            where: {
+                name,
+            },
+        });
+
+        if (!parkingLot) {
+            return res.status(404).json({ message: `Parking lot '${name}' not found` });
+        }
+
+        // Delete the parking lot by ID
+        await prisma.parkingLot.delete({
+            where: {
+                id: parkingLot.id,
+            },
+        });
+
+        res.json({ message: `Parking lot '${name}' deleted successfully` });
+    } catch (error) {
+        console.error('Error deleting ParkingLot:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
 
 
 // Start the Express server
