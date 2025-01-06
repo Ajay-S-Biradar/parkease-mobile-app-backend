@@ -109,40 +109,62 @@ app.post('/api/lot-details', async (req, res) => {
 });
 
 // New endpoint to update slot status
-app.put('/api/update-slot-status', async (req, res) => {
-    const { parkingLotId, filledSlots, freeSlots } = req.body;
-
-    if (!parkingLotId || !Array.isArray(filledSlots) || !Array.isArray(freeSlots)) {
-        return res.status(400).json({ message: 'Invalid request. Ensure parkingLotId, filledSlots, and freeSlots are provided.' });
-    }
+app.put('/api/update-parking-lot', async (req, res) => {
+    const { name, location, latitude, longitude, totalSlots, filledSlots, freeSlots } = req.body;
 
     try {
-        // Find the parking lot by ID
-        const parkingLot = await prisma.parkingLot.findUnique({
-            where: { id: parkingLotId },
+        // Check if a parking lot with the same name already exists
+        let parkingLot = await prisma.parkingLot.findFirst({
+            where: { name },
             include: { slots: true },
         });
 
         if (!parkingLot) {
-            return res.status(404).json({ message: 'Parking lot not found' });
+            // Create a new parking lot if it doesn't exist
+            if (!name || !location || !latitude || !longitude || !totalSlots || !Array.isArray(filledSlots) || !Array.isArray(freeSlots)) {
+                return res.status(400).json({
+                    message: 'Invalid request. Ensure name, location, latitude, longitude, totalSlots, filledSlots, and freeSlots are provided.',
+                });
+            }
+            parkingLot = await prisma.parkingLot.create({
+                data: {
+                    name,
+                    location,
+                    latitude,
+                    longitude,
+                    totalSlots,
+                    slots: {
+                        create: Array.from({ length: totalSlots }, (_, index) => ({
+                            slotNumber: index + 1,
+                            status: filledSlots.includes(index + 1) ? true : false,
+                        })),
+                    },
+                },
+                include: { slots: true },
+            });
+
+            return res.status(201).json({
+                message: 'Parking lot created successfully.',
+                parkingLot,
+            });
         }
 
-        // Update the status of the slots based on the provided filledSlots and freeSlots
-        const updatedSlots = parkingLot.slots.map(slot => {
+        // Update existing parking lot
+        const updatedSlots = parkingLot.slots.map((slot) => {
             if (filledSlots.includes(slot.slotNumber)) {
-                slot.status = true;  // Mark as filled
+                slot.status = true; // Mark as filled
             } else if (freeSlots.includes(slot.slotNumber)) {
-                slot.status = false;  // Mark as free
+                slot.status = false; // Mark as free
             }
             return slot;
         });
 
-        // Update the parking lot with new slot statuses
+        // Update slots in the parking lot
         await prisma.parkingLot.update({
-            where: { id: parkingLotId },
+            where: { id: parkingLot.id },
             data: {
                 slots: {
-                    updateMany: updatedSlots.map(slot => ({
+                    updateMany: updatedSlots.map((slot) => ({
                         where: { id: slot.id },
                         data: { status: slot.status },
                     })),
@@ -150,12 +172,20 @@ app.put('/api/update-slot-status', async (req, res) => {
             },
         });
 
-        res.status(200).json({ message: 'Slot statuses updated successfully' });
+        res.status(200).json({
+            message: 'Parking lot and slot statuses updated successfully.',
+            parkingLot: {
+                ...parkingLot,
+                slots: updatedSlots,
+            },
+        });
     } catch (error) {
-        console.error('Error updating slot status:', error);
+        console.error('Error updating parking lot:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
+
 
 // Start the Express server
 app.listen(port, () => {
