@@ -51,8 +51,8 @@ model ParkingSlot {
   lot        ParkingLot @relation(fields: [lotId], references: [id])
   slotNumber Int        
   status     Boolean    @default(true) 
-  locationX  Float?
-  locationY  Float?
+  locationX  Float?     @default(0.0)
+  locationY  Float?     @default(0.0)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 }
