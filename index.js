@@ -63,42 +63,41 @@ app.post('/api/lot-details', async (req, res) => {
     const { parkingLotName, userLat, userLon } = req.body;
 
     try {
-        // Query the ParkingLot by name (using findFirst)
+        // Query the ParkingLot by name
         const parkingLot = await prisma.parkingLot.findFirst({
-            where: {
-                name: parkingLotName,
-            },
-            include: {
-                slots: true,
-            },
+            where: { name: parkingLotName },
+            include: { slots: true },
         });
 
         if (!parkingLot) {
             return res.status(404).json({ message: 'Parking lot not found' });
         }
 
-        const distance = calculateDistanceInKM(
-            userLat,
-            userLon,
-            parkingLot.latitude,
-            parkingLot.longitude
-        );
-
-        // Count total slots and filled/available slots
-        const totalSlots = parkingLot.totalSlots;
-        const filledSlots = parkingLot.slots.filter(slot => !slot.status).length;
+        // Count total, filled, and available slots
+        const totalSlots = parkingLot.slots.length; // Assuming `slots` array represents all slots
+        const filledSlots = parkingLot.slots.filter(slot => !slot.status).length; // Assuming `status` represents availability
         const availableSlots = totalSlots - filledSlots;
 
-        // Prepare response data
+        // Prepare base response data
         const responseData = {
             parkingLotName: parkingLot.name,
             latitude: parkingLot.latitude,
             longitude: parkingLot.longitude,
-            distance: distance.toFixed(2),
             totalSlots,
             availableSlots,
             filledSlots,
         };
+
+        // Calculate and add distance if userLat and userLon are provided
+        if (userLat && userLon) {
+            const distance = calculateDistanceInKM(
+                userLat,
+                userLon,
+                parkingLot.latitude,
+                parkingLot.longitude
+            );
+            responseData.distance = distance.toFixed(2); // Add distance to response
+        }
 
         // Send the response
         res.status(200).json(responseData);
@@ -107,6 +106,7 @@ app.post('/api/lot-details', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
 
 // New endpoint to update slot status
 app.put('/api/update-parking-lot', async (req, res) => {
